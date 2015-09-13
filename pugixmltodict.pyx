@@ -91,6 +91,7 @@ cdef walk(xml_node node):
     cdef bint has_children = 0
     cdef xml_text text = node.text()
     cdef const_char* tag
+    cdef str text_val = ""
 
     while not child.empty():
         child_type = child.type()
@@ -106,16 +107,14 @@ cdef walk(xml_node node):
 
     cdef dict ret = {}
 
-    if not text.empty():
-        ret['#text'] = text.get().strip()
-
     while not attr.empty():
         ret['@' + attr.name()] = attr.value()
         attr = attr.next_attribute()
 
     child = node.first_child()
     while not child.empty():
-        if child.type() == node_element:
+        child_type = child.type()
+        if child_type == node_element:
             tag = child.name()
             if tag in ret:
                 if not isinstance(ret[tag], list):
@@ -123,7 +122,12 @@ cdef walk(xml_node node):
                 ret[tag].append(walk(child))
             else:
                 ret[tag] = walk(child)
+        elif child_type == node_cdata or child_type == node_pcdata:
+            text_val += child.value()
         child = child.next_sibling()
+
+    if text_val:
+        ret['#text'] = text_val.strip()
 
     return ret or None
 
