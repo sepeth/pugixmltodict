@@ -66,3 +66,11 @@ class XmlToDictTestCase(unittest.TestCase):
             },
         }
         self.assertEqual(parse(xml), d)
+
+    def test_with_broken_attribute(self):
+        with self.assertRaises(ValueError):
+            parse('<root attr>foo</root>')
+
+    def test_with_mismatched_tag(self):
+        with self.assertRaises(ValueError):
+            parse('<root attr="val">text</wrong>')

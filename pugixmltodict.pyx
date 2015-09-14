@@ -2,6 +2,7 @@
 # distutils: sources = pugixml/src/pugixml.cpp
 
 from libc.string cimport const_char
+from libc.stddef cimport ptrdiff_t
 
 
 cdef extern from "pugixml/src/pugixml.hpp" namespace "pugi":
@@ -78,7 +79,9 @@ cdef extern from "pugixml/src/pugixml.hpp" namespace "pugi":
         bint operator!() nogil const
 
     cdef cppclass xml_parse_result:
+        ptrdiff_t offset
         bint operator bool() nogil const
+        const_char* description() nogil const
 
     cdef cppclass xml_document(xml_node):
         xml_parse_result load_buffer(const char* contents, size_t size) nogil
@@ -139,6 +142,10 @@ def parse(xml_input):
     cdef size_t input_len = len(xml_input)
     cdef const_char* input_str = xml_input
     with nogil:
-        doc.load_buffer(input_str, input_len)
+        result = doc.load_buffer(input_str, input_len)
         root = doc.first_child()
-    return {root.name(): walk(root)}
+    if result:
+        return {root.name(): walk(root)}
+    else:
+        raise ValueError(
+            '%s, at offset %d' % (result.description(), result.offset))
