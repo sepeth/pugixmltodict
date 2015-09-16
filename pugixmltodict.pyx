@@ -139,8 +139,15 @@ def parse(xml_input):
     cdef xml_document doc
     cdef xml_parse_result result
     cdef xml_node root
-    cdef size_t input_len = len(xml_input)
-    cdef const_char* input_str = xml_input
+    cdef const_char* input_str
+    cdef size_t input_len
+
+    if isinstance(xml_input, unicode):
+        xml_input = xml_input.encode('utf-8')
+
+    input_str = xml_input
+    input_len = len(xml_input)
+
     with nogil:
         result = doc.load_buffer(input_str, input_len)
         root = doc.first_child()
