@@ -1,5 +1,5 @@
 import unittest
-from pugixmltodict import parse
+from pugixmltodict import parse, unparse
 
 
 class XmlToDictTestCase(unittest.TestCase):
@@ -74,3 +74,30 @@ class XmlToDictTestCase(unittest.TestCase):
     def test_with_mismatched_tag(self):
         with self.assertRaises(ValueError):
             parse('<root attr="val">text</wrong>')
+
+
+class DictToXmlTestCase(unittest.TestCase):
+    def test_root(self):
+        obj = {'a': None}
+        self.assertEqual(obj, parse(unparse(obj)))
+        self.assertEqual(unparse(obj), unparse(parse(unparse(obj))))
+
+    def test_simple_text(self):
+        obj = {'a': 'b'}
+        self.assertEqual(obj, parse(unparse(obj)))
+        self.assertEqual(unparse(obj), unparse(parse(unparse(obj))))
+
+    def test_attrib(self):
+        obj = {'a': {'@href': 'x'}}
+        self.assertEqual(obj, parse(unparse(obj)))
+        self.assertEqual(unparse(obj), unparse(parse(unparse(obj))))
+
+    def test_attrib_and_text(self):
+        obj = {'a': {'@href': 'x', '#text': 'y'}}
+        self.assertEqual(obj, parse(unparse(obj)))
+        self.assertEqual(unparse(obj), unparse(parse(unparse(obj))))
+
+    def test_list(self):
+        obj = {'a': {'b': ['1', '2', '3']}}
+        self.assertEqual(obj, parse(unparse(obj)))
+        self.assertEqual(unparse(obj), unparse(parse(unparse(obj))))
