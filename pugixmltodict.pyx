@@ -41,6 +41,18 @@ cdef extern from "pugixml/src/pugixml.hpp" namespace "pugi":
         node_declaration,  # Document declaration, i.e. '<?xml version="1.0"?>'
         node_doctype       # Document type declaration, i.e. '<!DOCTYPE doc>'
 
+    cdef enum xml_encoding:
+        encoding_auto,      # Auto-detect
+        encoding_utf8,      # UTF8 encoding
+        encoding_utf16_le,  # Little-endian UTF16
+        encoding_utf16_be,  # Big-endian UTF16
+        encoding_utf16,     # UTF16 with native endianness
+        encoding_utf32_le,  # Little-endian UTF32
+        encoding_utf32_be,  # Big-endian UTF32
+        encoding_utf32,     # UTF32 with native endianness
+        encoding_wchar,     # The same encoding wchar_t has (either UTF16 or UTF32)
+        encoding_latin1
+
     cdef cppclass xml_node:
         # Check if node is empty.
         bint empty() nogil const
@@ -102,8 +114,8 @@ cdef extern from "pugixml/src/pugixml.hpp" namespace "pugi":
 
         # Add child node with specified type. Returns added node,
         # or empty node on errors.
-        xml_node append_child(xml_node_type type) nogil
         xml_node append_child(const_char* name) nogil
+        xml_node append_child(xml_node_type type) nogil
 
     cdef cppclass xml_parse_result:
         ptrdiff_t offset
@@ -115,7 +127,8 @@ cdef extern from "pugixml/src/pugixml.hpp" namespace "pugi":
 
     cdef cppclass xml_document(xml_node):
         xml_parse_result load_buffer(const char* contents, size_t size) nogil
-        void save(stringstream& stream) nogil const
+        void save(stringstream& stream, const_char* indent, unsigned int flags,
+                  xml_encoding encoding) nogil const
 
 
 cdef walk(xml_node node):
@@ -220,7 +233,10 @@ def unparse(xml_dict):
     cdef xml_document doc
     cdef stringstream ss
     cdef bytes ret
+    cdef xml_node decl = doc.append_child(node_declaration)
+    decl.append_attribute("version").set_value("1.0")
+    decl.append_attribute("encoding").set_value("utf-8")
     unwalk(doc, xml_dict)
-    doc.save(ss)
+    doc.save(ss, "", 0, encoding_utf8)  # no indent
     ret = ss.str()
     return ret
