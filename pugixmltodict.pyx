@@ -6,29 +6,29 @@ from libc.stddef cimport ptrdiff_t
 from libcpp.string cimport string
 
 
-cdef extern from "<sstream>" namespace "std":
+cdef extern from "<sstream>" namespace "std" nogil:
     cdef cppclass stringstream:
         string str() const
 
 
-cdef extern from "pugixml/src/pugixml.hpp" namespace "pugi":
+cdef extern from "pugixml/src/pugixml.hpp" namespace "pugi" nogil:
     cdef cppclass xml_text:
-        bint empty() nogil const
-        const_char* get() nogil const
+        bint empty() const
+        const_char* get() const
 
     cdef cppclass xml_attribute:
-        const_char* name() nogil const
-        const_char* value() nogil const
-        bint empty() nogil const
+        const_char* name() const
+        const_char* value() const
+        bint empty() const
 
         # Get next/previous attribute in the attribute list of the parent node
-        xml_attribute next_attribute() nogil const
-        xml_attribute previous_attribute() nogil const
+        xml_attribute next_attribute() const
+        xml_attribute previous_attribute() const
 
         # Set attribute name/value (returns false if attribute is empty or there
         # is not enough memory)
-        bint set_name(const_char* rhs) nogil
-        bint set_value(const_char* rhs) nogil
+        bint set_name(const_char* rhs)
+        bint set_value(const_char* rhs)
 
     cdef enum xml_node_type:
         node_null,         # Empty (null) node handle
@@ -55,80 +55,80 @@ cdef extern from "pugixml/src/pugixml.hpp" namespace "pugi":
 
     cdef cppclass xml_node:
         # Check if node is empty.
-        bint empty() nogil const
+        bint empty() const
 
         # Get node type
-        xml_node_type type() nogil const
+        xml_node_type type() const
 
         # Get node name, or "" if node is empty or it has no name
-        const_char* name() nogil const
+        const_char* name() const
 
         # Get node value, or "" if node is empty or it has no value
         # Note: For <node>text</node> node.value() does not return "text"!
         # Use child_value() or text() methods to access text inside nodes.
-        const_char* value() nogil const
+        const_char* value() const
 
-        xml_attribute first_attribute() nogil const
-        xml_attribute last_attribute() nogil const
+        xml_attribute first_attribute() const
+        xml_attribute last_attribute() const
 
         # Get children list
-        xml_node first_child() nogil const
-        xml_node last_child() nogil const
+        xml_node first_child() const
+        xml_node last_child() const
 
         # Get next/previous sibling in the children list of the parent node
-        xml_node next_sibling() nogil const
-        xml_node previous_sibling() nogil const
+        xml_node next_sibling() const
+        xml_node previous_sibling() const
 
         # Get parent node
-        xml_node parent() nogil const
+        xml_node parent() const
 
         # Get root of DOM tree this node belongs to
-        xml_node root() nogil const
+        xml_node root() const
 
         # Get text object for the current node
-        xml_text text() nogil const
+        xml_text text() const
 
         # Get child, attribute or next/previous sibling with the specified name
-        xml_node child(const_char* name) nogil const
-        xml_attribute attribute(const_char* name) nogil const
-        xml_node next_sibling(const_char* name) nogil const
-        xml_node previous_sibling(const_char* name) nogil const
+        xml_node child(const_char* name) const
+        xml_attribute attribute(const_char* name) const
+        xml_node next_sibling(const_char* name) const
+        xml_node previous_sibling(const_char* name) const
 
         # Get child value of current node; that is, value of the first child
         # node of type PCDATA/CDATA
-        const_char* child_value() nogil const
+        const_char* child_value() const
 
         # Get child value of child with specified name.
         # Equivalent to child(name).child_value().
-        const_char* child_value(const_char* name) nogil const
-        bint operator!() nogil const
+        const_char* child_value(const_char* name) const
+        bint operator!() const
 
         # Set node name/value (returns false if node is empty,
         # there is not enough memory, or node can not have name/value)
-        bint set_name(const_char* rhs) nogil
-        bint set_value(const_char* rhs) nogil
+        bint set_name(const_char* rhs)
+        bint set_value(const_char* rhs)
 
         # Add attribute with specified name. Returns added attribute,
         # or empty attribute on errors.
-        xml_attribute append_attribute(const_char* name) nogil
+        xml_attribute append_attribute(const_char* name)
 
         # Add child node with specified type. Returns added node,
         # or empty node on errors.
-        xml_node append_child(const_char* name) nogil
-        xml_node append_child(xml_node_type type) nogil
+        xml_node append_child(const_char* name)
+        xml_node append_child(xml_node_type type)
 
     cdef cppclass xml_parse_result:
         ptrdiff_t offset
-        bint operator bool() nogil const
-        const_char* description() nogil const
+        bint operator bool() const
+        const_char* description() const
 
     cdef cppclass xml_writer:
         pass
 
     cdef cppclass xml_document(xml_node):
-        xml_parse_result load_buffer(const char* contents, size_t size) nogil
+        xml_parse_result load_buffer(const char* contents, size_t size)
         void save(stringstream& stream, const_char* indent, unsigned int flags,
-                  xml_encoding encoding) nogil const
+                  xml_encoding encoding) const
 
 
 cdef walk(xml_node node):
