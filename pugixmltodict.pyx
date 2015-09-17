@@ -202,11 +202,9 @@ def parse(xml_input):
             '%s, at offset %d' % (result.description(), result.offset))
 
 
-cdef unwalk_list(xml_node parent, list val):
-    cdef xml_node grand_parent = parent.parent()
-    cdef const_char* name = parent.name()
+cdef unwalk_list(xml_node parent, const_char* name, list val):
     for sub in val:
-        node = grand_parent.append_child(name)
+        node = parent.append_child(name)
         unwalk(node, sub)
 
 
@@ -215,14 +213,16 @@ cdef unwalk(xml_node parent, val):
         parent.append_child(node_pcdata).set_value(val)
     elif isinstance(val, int) or isinstance(val, float):
         parent.append_child(node_pcdata).set_value(str(val))
-    elif isinstance(val, list):
-        unwalk_list(parent, val)
+    elif val is None:
+        parent.append_child(node_pcdata).set_value('')
     elif isinstance(val, dict):
         for k, v in val.items():
             if k[0] == '@':
                 parent.append_attribute(k[1:]).set_value(v)
             elif k == '#text':
                 unwalk(parent, v)
+            elif isinstance(v, list):
+                unwalk_list(parent, k, v)
             else:
                 unwalk(parent.append_child(<bytes>k), v)
     else:
