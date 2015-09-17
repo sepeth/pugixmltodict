@@ -3,6 +3,12 @@
 
 from libc.string cimport const_char
 from libc.stddef cimport ptrdiff_t
+from libcpp.string cimport string
+
+
+cdef extern from "<sstream>" namespace "std":
+    cdef cppclass stringstream:
+        string str() const
 
 
 cdef extern from "pugixml/src/pugixml.hpp" namespace "pugi":
@@ -18,6 +24,11 @@ cdef extern from "pugixml/src/pugixml.hpp" namespace "pugi":
         # Get next/previous attribute in the attribute list of the parent node
         xml_attribute next_attribute() nogil const
         xml_attribute previous_attribute() nogil const
+
+        # Set attribute name/value (returns false if attribute is empty or there
+        # is not enough memory)
+        bint set_name(const_char* rhs) nogil
+        bint set_value(const_char* rhs) nogil
 
     cdef enum xml_node_type:
         node_null,         # Empty (null) node handle
@@ -71,20 +82,40 @@ cdef extern from "pugixml/src/pugixml.hpp" namespace "pugi":
         xml_node next_sibling(const_char* name) nogil const
         xml_node previous_sibling(const_char* name) nogil const
 
-        # Get child value of current node; that is, value of the first child node of type PCDATA/CDATA
+        # Get child value of current node; that is, value of the first child
+        # node of type PCDATA/CDATA
         const_char* child_value() nogil const
 
-        # Get child value of child with specified name. Equivalent to child(name).child_value().
+        # Get child value of child with specified name.
+        # Equivalent to child(name).child_value().
         const_char* child_value(const_char* name) nogil const
         bint operator!() nogil const
+
+        # Set node name/value (returns false if node is empty,
+        # there is not enough memory, or node can not have name/value)
+        bint set_name(const_char* rhs) nogil
+        bint set_value(const_char* rhs) nogil
+
+        # Add attribute with specified name. Returns added attribute,
+        # or empty attribute on errors.
+        xml_attribute append_attribute(const_char* name) nogil
+
+        # Add child node with specified type. Returns added node,
+        # or empty node on errors.
+        xml_node append_child(xml_node_type type) nogil
+        xml_node append_child(const_char* name) nogil
 
     cdef cppclass xml_parse_result:
         ptrdiff_t offset
         bint operator bool() nogil const
         const_char* description() nogil const
 
+    cdef cppclass xml_writer:
+        pass
+
     cdef cppclass xml_document(xml_node):
         xml_parse_result load_buffer(const char* contents, size_t size) nogil
+        void save(stringstream& stream) nogil const
 
 
 cdef walk(xml_node node):
@@ -156,3 +187,40 @@ def parse(xml_input):
     else:
         raise ValueError(
             '%s, at offset %d' % (result.description(), result.offset))
+
+
+cdef unwalk_list(xml_node parent, list val):
+    cdef xml_node grand_parent = parent.parent()
+    cdef const_char* name = parent.name()
+    for sub in val:
+        node = grand_parent.append_child(name)
+        unwalk(node, sub)
+
+
+cdef unwalk(xml_node parent, val):
+    if isinstance(val, basestring):
+        parent.append_child(node_pcdata).set_value(val)
+    elif isinstance(val, int) or isinstance(val, float):
+        parent.append_child(node_pcdata).set_value(str(val))
+    elif isinstance(val, list):
+        unwalk_list(parent, val)
+    elif isinstance(val, dict):
+        for k, v in val.items():
+            if k[0] == '@':
+                parent.append_attribute(k[1:]).set_value(v)
+            elif k == '#text':
+                unwalk(parent, v)
+            else:
+                unwalk(parent.append_child(<bytes>k), v)
+    else:
+        raise ValueError('Value type can\'t be "%s"' % type(val).__name__)
+
+
+def unparse(xml_dict):
+    cdef xml_document doc
+    cdef stringstream ss
+    cdef bytes ret
+    unwalk(doc, xml_dict)
+    doc.save(ss)
+    ret = ss.str()
+    return ret
