@@ -1,0 +1,2 @@
+recursive-include pugixml/src *.hpp *.cpp
+include pugixmltodict.pyx

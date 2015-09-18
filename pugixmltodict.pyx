@@ -1,5 +1,4 @@
 # distutils: language = c++
-# distutils: sources = pugixml/src/pugixml.cpp
 
 from libc.string cimport const_char
 from libc.stddef cimport ptrdiff_t
