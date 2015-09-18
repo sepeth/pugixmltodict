@@ -208,7 +208,9 @@ cdef unwalk_list(xml_node parent, const_char* name, list val):
 
 
 cdef unwalk(xml_node parent, val):
-    if isinstance(val, basestring):
+    if isinstance(val, unicode):
+        parent.append_child(node_pcdata).set_value(val.encode('utf-8'))
+    elif isinstance(val, bytes):
         parent.append_child(node_pcdata).set_value(val)
     elif val is None:
         parent.append_child(node_pcdata).set_value('')
@@ -224,7 +226,6 @@ cdef unwalk(xml_node parent, val):
                 unwalk(parent.append_child(<bytes>k), v)
     else:
         parent.append_child(node_pcdata).set_value(str(val))
-
 
 
 def unparse(xml_dict):
