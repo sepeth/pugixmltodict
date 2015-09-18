@@ -2,8 +2,7 @@
 
 ## Install
 
-    $ pip install cython
-    $ pip install git+git://github.com/sepeth/pugixmltodict.git
+    $ pip install pugixmltodict
 
 ## Run tests
 
