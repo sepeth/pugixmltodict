@@ -210,8 +210,6 @@ cdef unwalk_list(xml_node parent, const_char* name, list val):
 cdef unwalk(xml_node parent, val):
     if isinstance(val, basestring):
         parent.append_child(node_pcdata).set_value(val)
-    elif isinstance(val, int) or isinstance(val, float):
-        parent.append_child(node_pcdata).set_value(str(val))
     elif val is None:
         parent.append_child(node_pcdata).set_value('')
     elif isinstance(val, dict):
@@ -225,7 +223,8 @@ cdef unwalk(xml_node parent, val):
             else:
                 unwalk(parent.append_child(<bytes>k), v)
     else:
-        raise ValueError('Value type can\'t be "%s"' % type(val).__name__)
+        parent.append_child(node_pcdata).set_value(str(val))
+
 
 
 def unparse(xml_dict):
