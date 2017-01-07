@@ -135,7 +135,6 @@ cdef extern from "pugixml/src/pugixml.hpp" namespace "pugi" nogil:
                   xml_encoding encoding) const
 
 
-
 cdef unicodify(val):
     if isinstance(val, bytes):
         return val.decode('utf-8')
@@ -155,7 +154,7 @@ cdef deunicodify(val):
     if isinstance(val, unicode):
         return val.encode('utf-8')
     if isinstance(val, list):
-        return [unicodify(v) for v in val]
+        return [deunicodify(v) for v in val]
     if isinstance(val, dict):
         ret = {}
         for k, v in val.items():
@@ -255,10 +254,6 @@ cdef unwalk(xml_node parent, val):
         parent.append_child(node_pcdata).set_value(b'')
     elif isinstance(val, dict):
         for k, v in val.items():
-            if isinstance(k, unicode):
-                k = k.encode('utf-8')
-            if isinstance(v, unicode):
-                v = v.encode('utf-8')
             if k[0] == b'@' or k[0] == 64: # is @ char
                 parent.append_attribute(k[1:]).set_value(v)
             elif k == b'#text':
@@ -282,7 +277,8 @@ def unparse(xml_dict):
     else:
         xml_dict = deunicodify(xml_dict)
     unwalk(doc, xml_dict)
-    doc.save(ss, "", 0, encoding_utf8)  # no indent
+    with nogil:
+        doc.save(ss, "", 0, encoding_utf8)  # no indent
     ret = ss.str()
     if PY3:
         return ret.decode('utf-8')
