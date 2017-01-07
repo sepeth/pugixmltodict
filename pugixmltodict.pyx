@@ -1,8 +1,13 @@
 # distutils: language = c++
 
+from __future__ import unicode_literals
+import sys
 from libc.string cimport const_char
 from libc.stddef cimport ptrdiff_t
 from libcpp.string cimport string
+
+
+PY3 = sys.version_info[0] == 3
 
 
 cdef extern from "<sstream>" namespace "std" nogil:
@@ -130,6 +135,37 @@ cdef extern from "pugixml/src/pugixml.hpp" namespace "pugi" nogil:
                   xml_encoding encoding) const
 
 
+
+cdef unicodify(val):
+    if isinstance(val, bytes):
+        return val.decode('utf-8')
+    if isinstance(val, list):
+        return [unicodify(v) for v in val]
+    if isinstance(val, dict):
+        ret = {}
+        for k, v in val.items():
+            if isinstance(k, bytes):
+                k = k.decode('utf-8')
+            ret[k] = unicodify(v)
+        return ret
+    return val
+
+
+cdef deunicodify(val):
+    if isinstance(val, unicode):
+        return val.encode('utf-8')
+    if isinstance(val, list):
+        return [unicodify(v) for v in val]
+    if isinstance(val, dict):
+        ret = {}
+        for k, v in val.items():
+            if isinstance(k, unicode):
+                k = k.encode('utf-8')
+            ret[k] = deunicodify(v)
+        return ret
+    return val
+
+
 cdef walk(xml_node node):
     cdef xml_attribute attr = node.first_attribute()
     cdef xml_node child = node.first_child()
@@ -137,7 +173,7 @@ cdef walk(xml_node node):
     cdef bint has_children = 0
     cdef xml_text text = node.text()
     cdef const_char* tag
-    cdef str text_val = ""
+    cdef bytes text_val = b""
 
     while not child.empty():
         child_type = child.type()
@@ -154,7 +190,7 @@ cdef walk(xml_node node):
     cdef dict ret = {}
 
     while not attr.empty():
-        ret['@' + attr.name()] = attr.value()
+        ret[b'@' + attr.name()] = attr.value()
         attr = attr.next_attribute()
 
     child = node.first_child()
@@ -173,7 +209,7 @@ cdef walk(xml_node node):
         child = child.next_sibling()
 
     if text_val:
-        ret['#text'] = text_val.strip()
+        ret[b'#text'] = text_val.strip()
 
     return ret or None
 
@@ -195,7 +231,10 @@ def parse(xml_input):
         result = doc.load_buffer(input_str, input_len)
         root = doc.first_child()
     if result:
-        return {root.name(): walk(root)}
+        ret = {root.name(): walk(root)}
+        if PY3:
+            return unicodify(ret)
+        return ret
     else:
         raise ValueError(
             '%s, at offset %d' % (result.description(), result.offset))
@@ -213,12 +252,16 @@ cdef unwalk(xml_node parent, val):
     elif isinstance(val, bytes):
         parent.append_child(node_pcdata).set_value(val)
     elif val is None:
-        parent.append_child(node_pcdata).set_value('')
+        parent.append_child(node_pcdata).set_value(b'')
     elif isinstance(val, dict):
         for k, v in val.items():
-            if k[0] == '@':
+            if isinstance(k, unicode):
+                k = k.encode('utf-8')
+            if isinstance(v, unicode):
+                v = v.encode('utf-8')
+            if k[0] == b'@' or k[0] == 64: # is @ char
                 parent.append_attribute(k[1:]).set_value(v)
-            elif k == '#text':
+            elif k == b'#text':
                 unwalk(parent, v)
             elif isinstance(v, list):
                 unwalk_list(parent, k, v)
@@ -234,8 +277,13 @@ def unparse(xml_dict):
     cdef bytes ret
     cdef xml_node decl = doc.append_child(node_declaration)
     decl.append_attribute("version").set_value("1.0")
-    decl.append_attribute("encoding").set_value("utf-8")
+    if not PY3:
+        decl.append_attribute("encoding").set_value("utf-8")
+    else:
+        xml_dict = deunicodify(xml_dict)
     unwalk(doc, xml_dict)
     doc.save(ss, "", 0, encoding_utf8)  # no indent
     ret = ss.str()
+    if PY3:
+        return ret.decode('utf-8')
     return ret
