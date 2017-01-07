@@ -26,7 +26,7 @@ if USE_CYTHON:
 
 setup(
     name='pugixmltodict',
-    version='0.3',
+    version='0.4',
     description='A fast alternative to xmltodict library',
     url='https://github.com/sepeth/pugixmltodict',
     author='Doğan Çeçen',
@@ -38,6 +38,7 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Cython',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
         'Topic :: Text Processing :: Markup :: XML',
     ],
 
