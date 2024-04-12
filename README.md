@@ -2,11 +2,32 @@
 
 ## Install
 
-    $ pip install pugixmltodict
+```sh
+pip install pugixmltodict
+```
 
 ## Run tests
 
-    $ python -m unittest tests
+```sh
+python -m unittest tests
+```
+
+## Build from sources
+
+Install Cython first:
+
+```sh
+pip install cython
+```
+
+Build with `--cython` so does Cython sources get compiled to C++:
+
+```sh
+python setup.py build --cython
+```
+
+_You can omit the parameter at later builds if you haven't made changes to `pugixmltodict.pyx`.
+
 
 ## License
 
